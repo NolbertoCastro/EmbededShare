@@ -59,9 +59,28 @@ async function getInPageContent(pageId){
                 }
             }
         } else if (block.type === 'image') {
+
+            // const newBlock = await notion.blocks.children.append({
+            //     block_id: destinationParentId,
+            //     children: [{
+            //         type: 'image',
+            //         image: {
+            //             type: sourceBlock.image.type,
+            //             [sourceBlock.image.type]: {
+            //                 url: sourceBlock.image[sourceBlock.image.type].url
+            //             }
+            //         }
+            //     }],
+            // });
+
+            // photos.push(block);
+
+            // Previous Solution using urls
             let imageUrl = block.image.file ? block.image.file.url : null;
+            // let imageExpiryTime = block.image.file ? block.image.file.expiry_time : null;
 
             if (imageUrl) {
+                // photos.push({imageUrl, imageExpiryTime});
                 photos.push(imageUrl);
             }
         }
@@ -97,29 +116,168 @@ getPagePages().then(blocks => {
 
 async function updateInbox() {
     const blockId = pageId;
+    const children = [];
 
-    async function createEmbedBlock(url) {
-        
-        const bookmarkBlock = {
+    function bookmarkedContent(title, contentArray) {
+        const totalElements = contentArray.length;
+        const columns = 3; 
+        const elementsPerColumn = Math.ceil(totalElements / columns);
+
+        children.push({
             object: 'block',
-            type: 'bookmark', 
-            bookmark: {
-              url: `${url}`
-            }
-          }
-
-        await notion.blocks.children.append({
-            block_id: blockId,
-            children: [bookmarkBlock]
+            type: 'heading_2',
+            heading_2: { rich_text: [{ text: { content: title } }] }
         });
-        // Esperar un breve período antes de crear el siguiente bloque
-        await new Promise(resolve => setTimeout(resolve, 500)); // Espera de 500 ms
+
+        const columnListBlock = {
+            object: 'block',
+            type: 'column_list',
+            column_list: {
+                children: []
+            }
+        };
+
+        for (let i = 0; i < columns; i++) {
+            const column = {
+                object: 'block',
+                type: 'column',
+                column: {
+                    children: []
+                }
+            };
+
+            for (let j = 0; j < elementsPerColumn; j++) {
+                const index = i * elementsPerColumn + j;
+                if (index < totalElements) {
+                    const bookmarkBlock = {
+                        object: 'block',
+                        type: 'bookmark', 
+                        bookmark: {
+                            url: contentArray[index]
+                        }
+                    };
+                    column.column.children.push(bookmarkBlock);
+                }
+            }
+
+            columnListBlock.column_list.children.push(column);
+        }
+
+        children.push(columnListBlock);
     }
 
-    // Crear cada bloque incrustado de forma secuencial
-    for (const url of internetContent) {
-        await createEmbedBlock(url);
+    function embededContent(title, contentArray) {
+        const totalElements = contentArray.length;
+        const columns = 3; 
+        const elementsPerColumn = Math.ceil(totalElements / columns);
+
+        children.push({
+            object: 'block',
+            type: 'heading_2',
+            heading_2: { rich_text: [{ text: { content: title } }] }
+        });
+
+        const columnListBlock = {
+            object: 'block',
+            type: 'column_list',
+            column_list: {
+                children: []
+            }
+        };
+
+        for (let i = 0; i < columns; i++) {
+            const column = {
+                object: 'block',
+                type: 'column',
+                column: {
+                    children: []
+                }
+            };
+
+            for (let j = 0; j < elementsPerColumn; j++) {
+                const index = i * elementsPerColumn + j;
+                if (index < totalElements) {
+                    const bookmarkBlock = {
+                        object: 'block',
+                        type: 'embed', 
+                        embed: {
+                            url: contentArray[index]
+                        }
+                    };
+                    column.column.children.push(bookmarkBlock);
+                }
+            }
+
+            columnListBlock.column_list.children.push(column);
+        }
+
+        children.push(columnListBlock);
     }
 
-    // Repetir para otros arrays de contenido si es necesario
+    function photoContent(title, contentArray) {
+        const totalElements = contentArray.length;
+        const columns = 3; 
+        const elementsPerColumn = Math.ceil(totalElements / columns);
+
+        children.push({
+            object: 'block',
+            type: 'heading_2',
+            heading_2: { rich_text: [{ text: { content: title } }] }
+        });
+
+        const columnListBlock = {
+            object: 'block',
+            type: 'column_list',
+            column_list: {
+                children: []
+            }
+        };
+
+        for (let i = 0; i < columns; i++) {
+            const column = {
+                object: 'block',
+                type: 'column',
+                column: {
+                    children: []
+                }
+            };
+
+            for (let j = 0; j < elementsPerColumn; j++) {
+                const index = i * elementsPerColumn + j;
+                if (index < totalElements) {
+                    const imageBlock = {
+                        object: 'block',
+                        type: 'image',
+                        image: {
+                            type: 'file',
+                            file: {
+                            // url: contentArray[index].imageUrl
+                                url: contentArray[index].imageUrl,
+                                expiry_time: contentArray[index].imageExpiryTime
+                            }
+                        }
+                    };
+                    column.column.children.push(imageBlock);
+                }
+            }
+
+            columnListBlock.column_list.children.push(column);
+        }
+
+        children.push(columnListBlock);
+    }
+
+    // embededContent("Instagram Content", instagramContent);
+    bookmarkedContent("YouTube Videos", youtubeVideos);
+    bookmarkedContent("Instagram Content", instagramContent);
+    embededContent("Twitter Content", twitterContent);
+    bookmarkedContent("Internet Content", internetContent);
+    // bookmarkedContent("Photos", photos);
+    
+    // photoContent("Photos", photos);
+
+    await notion.blocks.children.append({
+        block_id: blockId,
+        children: children
+    });
 }
