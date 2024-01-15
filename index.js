@@ -123,6 +123,11 @@ async function updateInbox() {
             });
         }
 
+        children.push({
+            object: 'block',
+            type: 'heading_2',
+            heading_2: { rich_text: [{ text: { content: title } }] }
+        });
         
         children.push({
             object: 'block',
