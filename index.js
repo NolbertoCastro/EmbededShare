@@ -25,6 +25,13 @@ async function getPagePages() {
     }
 }
 
+function formatYouTubeUrl(url) {
+    if (!url.startsWith('https://www.youtube.com/')) {
+        return url.replace('https://youtube.com/', 'https://www.youtube.com/');
+    }
+    return url;
+}
+
 async function getInPageContent(pageId){
     const blocks = (await notion.blocks.children.list({ block_id: pageId, page_size: 100 })).results;
 
@@ -266,9 +273,11 @@ async function updateInbox() {
 
         children.push(columnListBlock);
     }
-
+    for (let i = 0; i < youtubeVideos.length; i++){
+        youtubeVideos[i] = formatYouTubeUrl(youtubeVideos[i]);
+    }
     // embededContent("Instagram Content", instagramContent);
-    bookmarkedContent("YouTube Videos", youtubeVideos);
+    embededContent("YouTube Videos", youtubeVideos);
     bookmarkedContent("Instagram Content", instagramContent);
     embededContent("Twitter Content", twitterContent);
     bookmarkedContent("Internet Content", internetContent);
