@@ -97,50 +97,29 @@ getPagePages().then(blocks => {
 
 async function updateInbox() {
     const blockId = pageId;
-    const children = [];
 
-    function createColumnStructure(contentArray, title) {
-        const columnChildren = [];
-        const columnSize = 3; // Number of columns
-        const rows = Math.ceil(contentArray.length / columnSize);
-
-        for (let i = 0; i < rows; i++) {
-            const rowChildren = [];
-            for (let j = 0; j < columnSize; j++) {
-                const contentIndex = i * columnSize + j;
-                if (contentArray[contentIndex]) {
-                    rowChildren.push({
-                        object: 'block',
-                        type: 'embed',
-                        embed: { url: contentArray[contentIndex] }
-                    });
-                }
-            }
-            columnChildren.push({
-                object: 'block',
-                type: 'column',
-                column: { children: rowChildren }
-            });
-        }
-
-        children.push({
-            object: 'block',
-            type: 'heading_2',
-            heading_2: { rich_text: [{ text: { content: title } }] }
-        });
+    async function createEmbedBlock(url) {
         
-        children.push({
+        const bookmarkBlock = {
             object: 'block',
-            type: 'column_list',
-            column_list: { children: columnChildren }
+            type: 'bookmark', 
+            bookmark: {
+              url: `${url}`
+            }
+          }
+
+        await notion.blocks.children.append({
+            block_id: blockId,
+            children: [bookmarkBlock]
         });
+        // Esperar un breve período antes de crear el siguiente bloque
+        await new Promise(resolve => setTimeout(resolve, 500)); // Espera de 500 ms
     }
 
-    createColumnStructure(youtubeVideos, "YouTube Content"); 
+    // Crear cada bloque incrustado de forma secuencial
+    for (const url of internetContent) {
+        await createEmbedBlock(url);
+    }
 
-    const response = await notion.blocks.children.append({
-        block_id: blockId,
-        children: children
-    });
-    console.log(response);
+    // Repetir para otros arrays de contenido si es necesario
 }
