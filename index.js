@@ -29,10 +29,8 @@ async function getInPageContent(pageId){
     const blocks = (await notion.blocks.children.list({ block_id: pageId, page_size: 100 })).results;
 
     for (const block of blocks) {
-        // Check if block is a paragraph and has rich text content
         if (block.type === 'paragraph' && block.paragraph && Array.isArray(block.paragraph.rich_text)) {
             for (const textItem of block.paragraph.rich_text) {
-                // Check if the rich text item is of type 'text' and contains an Instagram link
                 if (textItem.type === 'text' && textItem.text.content.includes('https://www.instagram.com')) {
                     const urlMatch = textItem.text.content.match(/https:\/\/www\.instagram\.com\/[^\s]+/);
                     if (urlMatch && urlMatch.length > 0) {
@@ -61,7 +59,6 @@ async function getInPageContent(pageId){
                 }
             }
         } else if (block.type === 'image') {
-            // Extract the image URL
             let imageUrl = block.image.file ? block.image.file.url : null;
 
             if (imageUrl) {
@@ -93,43 +90,52 @@ getPagePages().then(blocks => {
         console.log('Contenido de Twitter:', twitterContent);
         console.log('Contenido de Internet:', internetContent);
         console.log('Imagenes:', photos);
-    });
 
-    updateInbox()
+        updateInbox();
+    });
 });
 
 async function updateInbox() {
-
     const blockId = pageId;
+    const children = [];
+
+    function createColumnStructure(contentArray, title) {
+        const columnChildren = [];
+        const columnSize = 3; // Number of columns
+        const rows = Math.ceil(contentArray.length / columnSize);
+
+        for (let i = 0; i < rows; i++) {
+            const rowChildren = [];
+            for (let j = 0; j < columnSize; j++) {
+                const contentIndex = i * columnSize + j;
+                if (contentArray[contentIndex]) {
+                    rowChildren.push({
+                        object: 'block',
+                        type: 'embed',
+                        embed: { url: contentArray[contentIndex] }
+                    });
+                }
+            }
+            columnChildren.push({
+                object: 'block',
+                type: 'column',
+                column: { children: rowChildren }
+            });
+        }
+
+        
+        children.push({
+            object: 'block',
+            type: 'column_list',
+            column_list: { children: columnChildren }
+        });
+    }
+
+    createColumnStructure(youtubeVideos, "YouTube Content"); 
+
     const response = await notion.blocks.children.append({
         block_id: blockId,
-        children: [
-        {
-            "heading_2": {
-            "rich_text": [
-                {
-                "text": {
-                    "content": "Youtube Content"
-                }
-                }
-            ]
-            }
-        },
-        {
-            "paragraph": {
-            "rich_text": [
-                {
-                "text": {
-                    "content": "Lacinato kale is a variety of kale with a long tradition in Italian cuisine, especially that of Tuscany. It is also known as Tuscan kale, Italian kale, dinosaur kale, kale, flat back kale, palm tree kale, or black Tuscan palm.",
-                    "link": {
-                    "url": "https://en.wikipedia.org/wiki/Lacinato_kale"
-                    }
-                }
-                }
-            ]
-            }
-        }
-        ],
+        children: children
     });
     console.log(response);
 }
