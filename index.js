@@ -67,27 +67,10 @@ async function getInPageContent(pageId){
             }
         } else if (block.type === 'image') {
 
-            // const newBlock = await notion.blocks.children.append({
-            //     block_id: destinationParentId,
-            //     children: [{
-            //         type: 'image',
-            //         image: {
-            //             type: sourceBlock.image.type,
-            //             [sourceBlock.image.type]: {
-            //                 url: sourceBlock.image[sourceBlock.image.type].url
-            //             }
-            //         }
-            //     }],
-            // });
-
-            // photos.push(block);
-
             // Previous Solution using urls
             let imageUrl = block.image.file ? block.image.file.url : null;
-            // let imageExpiryTime = block.image.file ? block.image.file.expiry_time : null;
 
             if (imageUrl) {
-                // photos.push({imageUrl, imageExpiryTime});
                 photos.push(imageUrl);
             }
         }
@@ -111,12 +94,6 @@ async function getContent(pages) {
 
 getPagePages().then(blocks => {
     getContent(blocks).then(() => {
-        console.log('Videos de YouTube:', youtubeVideos);
-        console.log('Contenido de Instagram:', instagramContent);
-        console.log('Contenido de Twitter:', twitterContent);
-        console.log('Contenido de Internet:', internetContent);
-        console.log('Imagenes:', photos);
-
         updateInbox();
     });
 });
@@ -276,6 +253,12 @@ async function updateInbox() {
     for (let i = 0; i < youtubeVideos.length; i++){
         youtubeVideos[i] = formatYouTubeUrl(youtubeVideos[i]);
     }
+
+    console.log('Videos de YouTube:', youtubeVideos);
+    console.log('Contenido de Instagram:', instagramContent);
+    console.log('Contenido de Twitter:', twitterContent);
+    console.log('Contenido de Internet:', internetContent);
+    console.log('Imagenes:', photos);
     // embededContent("Instagram Content", instagramContent);
     embededContent("YouTube Videos", youtubeVideos);
     bookmarkedContent("Instagram Content", instagramContent);
