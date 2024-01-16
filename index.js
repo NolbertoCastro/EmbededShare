@@ -34,6 +34,7 @@ function formatYouTubeUrl(url) {
 
 async function getInPageContent(pageId){
     const blocks = (await notion.blocks.children.list({ block_id: pageId, page_size: 100 })).results;
+    let containsPhotos = false;
 
     for (const block of blocks) {
         if (block.type === 'paragraph' && block.paragraph && Array.isArray(block.paragraph.rich_text)) {
@@ -72,29 +73,47 @@ async function getInPageContent(pageId){
 
             if (imageUrl) {
                 photos.push(imageUrl);
+                containsPhotos = true;
             }
         }
     }
+    return containsPhotos ? pageId : null;
 }
 
 
 async function getContent(pages) {
+    let pagesWithPhotos = [];
     for (let page of pages) {
         if (page.type === 'child_page') {
             const pageTitle = page.child_page.title;
-
             if (pageTitle.includes("https://youtube.com")) {
                 youtubeVideos.push(pageTitle);
             } else {
-                await getInPageContent(page.id)
+                let photoPageId = await getInPageContent(page.id);
+                if (photoPageId) {
+                    pagesWithPhotos.push(photoPageId);
+                }
             }
+        }
+    }
+    return pagesWithPhotos;
+}
+
+async function deletePages(blocks, blocksToKeep) {
+    for (let block of blocks) {
+        if (!blocksToKeep.includes(block.id)) {
+            await notion.blocks.delete({
+                block_id: block.id
+            });
         }
     }
 }
 
 getPagePages().then(blocks => {
-    getContent(blocks).then(() => {
-        updateInbox();
+    getContent(blocks).then(pagesWithPhotos => {
+        updateInbox().then(() => {
+            deletePages(blocks, pagesWithPhotos);
+        });
     });
 });
 
